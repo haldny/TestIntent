@@ -12,6 +12,8 @@ class MyReceiver: BroadcastReceiver() {
 
         if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
             Log.d("HSS", "O sistema operacional foi inicializado")
+
+            context?.startForegroundService(Intent(context, SyncService::class.java))
         }
 
         if (intent?.action == Intent.ACTION_LOCKED_BOOT_COMPLETED) {

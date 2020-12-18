@@ -1,21 +1,23 @@
 package com.haldny.testintent
 
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.app.job.JobInfo
+import android.app.job.JobScheduler
+import android.content.*
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import kotlinx.android.synthetic.main.activity_main.*
 
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var receiver: MyBroadcastReceiver
+    private lateinit var internalReceiver: InternalBroadcastReceiver
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,17 +49,72 @@ class MainActivity : AppCompatActivity() {
                 Log.d("HSS", "Nao tem activities para resolver essa action HALDNY3")
             }
         }
+
+        button_3.setOnClickListener {
+        /*val intent = Intent().apply {
+            action = "com.haldny.MY_BROADCAST"
+            putExtra("key", "Valor")
+            putExtra("key2", "Valor2")
+        }
+
+        Log.d("HSS", "Sending broadcast via local broadcast manager")
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)*/
+
+            val intent = Intent(this, MainActivity2::class.java)
+            startActivity(intent)
+        }
     }
 
     override fun onResume() {
         super.onResume()
 
+        val intent1 = Intent(this, HelloIntentService::class.java)
+        val intent2 = Intent(this, HelloIntentService::class.java)
+        val intent3 = Intent(this, HelloIntentService::class.java)
+        val intent4 = Intent(this, HelloIntentService::class.java)
+        val intent5 = Intent(this, HelloIntentService::class.java)
+
+        intent1.putExtra("name", "Renata")
+        intent2.putExtra("name", "Jemesson")
+        intent3.putExtra("name", "Neto")
+        intent4.putExtra("name", "Raquel")
+        intent5.putExtra("name", "Leonardo")
+
+        startService(intent1)
+        startService(intent2)
+        startService(intent3)
+        startService(intent4)
+        startService(intent5)
+
         if (!this::receiver.isInitialized) {
             receiver = MyBroadcastReceiver()
         }
 
+        if (!this::internalReceiver.isInitialized) {
+            internalReceiver = InternalBroadcastReceiver()
+        }
+
         registerReceiver(receiver, IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
         registerReceiver(receiver, IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"))
+
+        LocalBroadcastManager.getInstance(this)
+                .registerReceiver(internalReceiver, IntentFilter("com.haldny.MY_BROADCAST"))
+
+        val componentName = ComponentName(this, MyJobService::class.java)
+
+        val jobInfo = JobInfo.Builder(102, componentName)
+                .setRequiresCharging(true)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .build()
+
+        val jobScheduler = getSystemService(JOB_SCHEDULER_SERVICE) as JobScheduler
+        val result = jobScheduler.schedule(jobInfo)
+
+        if (result == JobScheduler.RESULT_SUCCESS) {
+            Log.d(TAG, "Conseguiu fazer o schedule do job!")
+        } else {
+            Log.d(TAG, "Nao conseguiu fazer o schedule do job!")
+        }
     }
 
     override fun onPause() {
@@ -65,6 +122,11 @@ class MainActivity : AppCompatActivity() {
 
         if (receiver != null) {
             unregisterReceiver(receiver)
+        }
+
+        if (internalReceiver != null) {
+            LocalBroadcastManager.getInstance(this)
+                    .unregisterReceiver(internalReceiver)
         }
     }
 
@@ -75,8 +137,6 @@ class MainActivity : AppCompatActivity() {
 
             if (intent?.action == WifiManager.WIFI_STATE_CHANGED_ACTION) {
                 Log.d("HSS", "O status do wifi mudou!")
-
-                Log.d("HSS", "Wifi Status: ${intent.getStringExtra(WifiManager.EXTRA_WIFI_STATE)}")
             }
 
             if (intent?.action == "android.net.conn.CONNECTIVITY_CHANGE") {
@@ -87,6 +147,18 @@ class MainActivity : AppCompatActivity() {
                 val isInternetActive = activeNetwork != null && activeNetwork.isConnected
 
                 Log.d("HSS", "Is internet connected: $isInternetActive")
+            }
+        }
+
+    }
+
+    inner class InternalBroadcastReceiver: BroadcastReceiver() {
+
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d("HSS", "onReceive from InternalBroadcastReceiver")
+
+            if (intent?.action == "com.haldny.MY_BROADCAST") {
+                Log.d("HSS", "Recebemos a action ${intent?.action}")
             }
         }
 
